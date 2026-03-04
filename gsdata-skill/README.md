@@ -11,7 +11,7 @@ This skill is designed to be installed by agents via OpenClaw.
 You can point your agent to this GitHub repository directly:
 
 ```bash
-clawhub install github:thu-nmrc/THU-OpenClaw-Skill/gsdata-skill
+clawhub install github:yangyuwen-bri/gsdata-skill
 ```
 
 ## Configuration
