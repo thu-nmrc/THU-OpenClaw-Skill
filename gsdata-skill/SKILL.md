@@ -31,11 +31,13 @@ Use the bundled python script to interact with the API:
 
 ## Rules
 1. For a new request, run `--dry-run` first to verify route/action mapping.
-2. Default to read-only actions. 
-3. **CRITICAL FOR CONVERSATIONS**: If you are answering a user in a chat interface (like Telegram), you MUST append `--param size=5` (or a similarly small number) to prevent dumping enormous JSON payloads into the chat context. 
+2. Default to read-only actions.
+3. **CRITICAL FOR CONVERSATIONS**: If you are answering a user in a chat interface (like Telegram), you MUST append `--param size=5` (or a similarly small number) to prevent dumping enormous JSON payloads into the chat context.
 4. Never run write-like actions unless user explicitly confirms.
 5. For write-like actions, require `--allow-write`.
 6. Return a concise summary first; included route + key fields used.
+7. **PAGINATION LIMIT**: The API strictly enforces a maximum of 20 items per page (e.g., passing `size=100` defaults to 20). To fetch large datasets, use a loop with `--param page=1`, `--param page=2`, etc. Do NOT attempt to fetch more than 20 items in a single call.
+8. **TOTAL COUNT ESTIMATION**: Before scraping multiple pages for `gsdata_pubsent_search`, ALWAYS probe the total volume first by running a test search with `--param limit=1` and checking the `numFound` field in the response JSON. Calculate total pages as `ceil(numFound / 20)`. (Note: The dedicated `num_found` action has a bug with date parameters and should NOT be used for this purpose).
 
 ## Quick Commands
 
@@ -53,7 +55,19 @@ python3 ./gsdata_adapter.py invoke \
   --param size=5 
 ```
 
-**3. Hot events:**
+**3. Probe data volume estimation (returns `numFound`):**
+```bash
+python3 ./gsdata_adapter.py invoke \
+  --tool gsdata_pubsent_search \
+  --action search \
+  --param keywords_include=人工智能 \
+  --param date_start=2026-03-01 \
+  --param date_end=2026-03-04 \
+  --param media_type=weibo \
+  --param limit=1
+```
+
+**4. Hot events:**
 ```bash
 python3 ./gsdata_adapter.py invoke \
   --tool gsdata_pubsent_hot \
@@ -61,7 +75,7 @@ python3 ./gsdata_adapter.py invoke \
   --params '{"type":"1"}'
 ```
 
-**4. Xiaohongshu account search:**
+**5. Xiaohongshu account search:**
 ```bash
 python3 ./gsdata_adapter.py invoke \
   --tool gsdata_account \
