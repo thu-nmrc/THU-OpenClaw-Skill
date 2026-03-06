@@ -65,6 +65,38 @@ def sanitize_path_segment(value: str) -> str:
     return s
 
 
+def infer_date_label(*candidates: str) -> str:
+    patterns = [
+        re.compile(r"((?:19|20)\d{2})[-_/\.](0?[1-9]|1[0-2])"),
+        re.compile(r"((?:19|20)\d{2})(0[1-9]|1[0-2])"),
+        re.compile(r"((?:19|20)\d{2})年(0?[1-9]|1[0-2])月?"),
+    ]
+    year_only = re.compile(r"((?:19|20)\d{2})")
+
+    for text in candidates:
+        s = (text or "").strip()
+        if not s:
+            continue
+        for p in patterns:
+            m = p.search(s)
+            if m:
+                year = m.group(1)
+                month = int(m.group(2))
+                return f"{year}-{month:02d}"
+        y = year_only.search(s)
+        if y:
+            return y.group(1)
+
+    return dt.datetime.now().strftime("%Y")
+
+
+def build_default_abstract(title: str, category: str) -> str:
+    return (
+        f"本报告围绕《{title}》展开，聚焦{category}相关议题，"
+        "系统梳理核心进展、关键问题与落地路径，供研究与决策参考。"
+    )
+
+
 def slug_for_id(value: str) -> str:
     s = value.lower()
     s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
@@ -227,9 +259,17 @@ def main() -> int:
     parser.add_argument("--report-file", required=True, help="Path to source report file.")
     parser.add_argument("--title", required=True, help="Report title.")
     parser.add_argument("--category", required=True, help="Report category text shown on site.")
-    parser.add_argument("--date", required=True, help="Report date label (e.g. 2026 or 2026-03).")
+    parser.add_argument(
+        "--date",
+        default=None,
+        help="Report date label (e.g. 2026 or 2026-03). If omitted, infer from file name/title or fallback to current year.",
+    )
     parser.add_argument("--version", default="1.0", help="Version label shown on site.")
-    parser.add_argument("--abstract", required=True, help="Report abstract text.")
+    parser.add_argument(
+        "--abstract",
+        default=None,
+        help="Report abstract text. If omitted, auto-generate a concise abstract.",
+    )
     parser.add_argument("--id", default=None, help="Optional report id; normalized to hyphen-case.")
     parser.add_argument("--cover-url", default=None, help="Optional explicit cover URL.")
     parser.add_argument(
@@ -293,20 +333,27 @@ def main() -> int:
                 "Choose a different file name or use --overwrite intentionally."
             )
 
-    entry_id = generate_entry_id(args.id, args.title, args.category, args.date, existing_ids)
+    resolved_date = (args.date or "").strip() or infer_date_label(source_file.name, args.title)
+    resolved_abstract = (args.abstract or "").strip() or build_default_abstract(args.title, args.category)
+
+    entry_id = generate_entry_id(args.id, args.title, args.category, resolved_date, existing_ids)
     cover_url = args.cover_url or build_cover_url(args.category, args.version)
     entry = {
         "id": entry_id,
         "title": args.title,
         "version": args.version,
-        "date": args.date,
+        "date": resolved_date,
         "category": args.category,
-        "abstract": args.abstract,
+        "abstract": resolved_abstract,
         "coverUrl": cover_url,
         "pdfUrl": f"./{rel_asset}",
     }
 
     if args.dry_run:
+        if not args.date:
+            print(f"[DRY RUN] Auto date: {resolved_date}")
+        if not args.abstract:
+            print(f"[DRY RUN] Auto abstract: {resolved_abstract}")
         print("[DRY RUN] Planned entry:")
         print(json.dumps(entry, ensure_ascii=False, indent=2))
         print(f"[DRY RUN] Copy: {source_file} -> {target_path}")
@@ -323,6 +370,11 @@ def main() -> int:
     if not args.skip_build:
         print("[INFO] Running npm run build ...")
         run_cmd(["npm", "run", "build"], cwd=repo_dir)
+
+    if not args.date:
+        print(f"[INFO] Auto date: {resolved_date}")
+    if not args.abstract:
+        print(f"[INFO] Auto abstract: {resolved_abstract}")
 
     current_branch = run_cmd(["git", "branch", "--show-current"], cwd=repo_dir).stdout.strip()
     if current_branch != args.base_branch:

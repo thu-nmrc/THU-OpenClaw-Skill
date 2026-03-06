@@ -31,8 +31,8 @@ Collect these fields before running:
 - `report_file` (required)
 - `title` (required)
 - `category` (required)
-- `date` (required)
-- `abstract` (required)
+- `date` (optional, auto-infer if omitted)
+- `abstract` (optional, auto-generate if omitted)
 - `version` (optional, default `1.0`)
 - `id` (optional)
 - `cover_url` (optional)
@@ -68,10 +68,21 @@ Default behavior:
 
 - Copies file into `public/<category_dir>/`.
 - Inserts new entry at index `0` in `public/reports_config.json`.
+- Auto-detects `date` from file name/title (`YYYY-MM`/`YYYY`) and falls back to current year.
+- Auto-generates `abstract` when omitted.
 - Runs `npm run build`.
 - Creates feature branch `codex/report-<id>`.
 - Commits and pushes to `origin`.
 - Creates PR with `gh` if available; otherwise prints manual compare URL.
+
+## Abstract Generation Standard
+
+When `abstract` is omitted, generate a concise, neutral summary by these rules:
+
+- Use one sentence in Chinese, around 40-90 characters.
+- Mention scope + value (for example: "核心进展、关键问题、落地路径").
+- Avoid unverifiable claims and marketing tone.
+- If content context is limited, use title/category-based generic summary.
 
 ## Guardrails
 
