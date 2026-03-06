@@ -1,4 +1,4 @@
-# THU-OpenClaw-Skill Repository
+# ZeeLin-OpenClaw-Skill Repository
 
 欢迎来到 **清新研究团队 (THU-NMRC)** 的 OpenClaw 技能开源仓库集合。
 
@@ -10,7 +10,8 @@
 
 目前仓库中包含以下主要 Skill：
 
-* [**gsdata-skill**](./gsdata-skill/): 接入清博智能 (GSData) 开放平台的强大插件。支持全网舆情关键词检索、热点事件探测、各大平台账号数据查询与榜单分析。主要用于舆情态势感知。
+* [**zeelin-social-watch**](./zeelin-social-watch/): 接入清博智能 (GSData) 开放平台的舆情分析技能。支持全网关键词检索、热点事件探测、平台榜单与账号数据查询。
+* [**zeelin-report-publisher**](./zeelin-report-publisher/): 面向“智灵报告网站”的报告发布技能。支持多类别报告自动入库、`reports_config.json` 置顶更新、构建校验与 PR 工作流。
 
 *(团队成员可在此处继续添加新的 Skill 目录和说明)*
 
@@ -18,9 +19,9 @@
 
 由于我们采用了 Monorepo（单体仓库）的方式管理多个子技能，当您需要在您的 Agent (如搭载 OpenClaw 的终端或 Telegram 机器人) 中安装特定的 Skill 时，请在 `clawhub install` 命令中指定对应的子目录。
 
-**例如，安装舆情分析插件 `gsdata-skill`：**
+**例如，安装报告发布插件 `zeelin-report-publisher`：**
 ```bash
-clawhub install github:thu-nmrc/THU-OpenClaw-Skill/gsdata-skill
+clawhub install github:thu-nmrc/ZeeLin-OpenClaw-Skill/zeelin-report-publisher
 ```
 
 每个子目录内都包含了该 Skill 独立运行所需的 `SKILL.md`、配置文件及详细的使用说明。
