@@ -1,5 +1,5 @@
 ---
-name: ZeeLin Social Watch
+name: zeelin-social-watch
 version: 1.2.0
 author: zeelin(@yangyuwen-bri)
 license: MIT
