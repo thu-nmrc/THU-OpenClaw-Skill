@@ -11,7 +11,7 @@ This skill is designed to be installed by agents via OpenClaw.
 You can point your agent to this GitHub repository directly:
 
 ```bash
-clawhub install github:thu-nmrc/ZeeLin-OpenClaw-Skill
+clawhub install github:thu-nmrc/ZeeLin-OpenClaw-Skill/zeelin-social-watch
 ```
 
 ## Configuration
