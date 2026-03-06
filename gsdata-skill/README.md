@@ -1,8 +1,8 @@
-# gsdata-skill
+# zeelin-social-watch
 
-A Clawhub-compatible skill for accessing the GSData (清博智能) Open Platform. 
+A Clawhub-compatible skill by **Zeelin** for social media monitoring and public sentiment analysis, powered by the gsdata (清博智能) Open Platform.
 
-This skill allows AI agents operating via OpenClaw to perform account, content, rank, public sentiment (舆情), and NLP queries using GSData's API.
+This skill allows AI agents operating via OpenClaw to monitor social media sentiment (舆情), trending events (热点), platform rankings (榜单), and account data across Weibo, Xiaohongshu, Douyin, and more.
 
 ## Installation
 
@@ -11,15 +11,15 @@ This skill is designed to be installed by agents via OpenClaw.
 You can point your agent to this GitHub repository directly:
 
 ```bash
-clawhub install github:yangyuwen-bri/gsdata-skill
+clawhub install github:thu-nmrc/ZeeLin-OpenClaw-Skill
 ```
 
 ## Configuration
 
-This skill requires a GSData (清博智能) App Key and App Secret. 
+This skill requires a gsdata (清博智能) App Key and App Secret. 
 
 **To get an API Key:**
-1. Register as a user on the [GSData Open Platform](http://openapi.gsdata.cn/).
+1. Register as a user on the [gsdata Open Platform](http://openapi.gsdata.cn/).
 2. Create an Application in the user center.
 3. Obtain your `app_key` and `app_secret`.
 

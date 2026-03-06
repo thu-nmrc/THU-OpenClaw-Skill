@@ -1,20 +1,20 @@
 ---
-name: gsdata
-version: 1.0.0
-author: yangyuwen-bri
+name: ZeeLin Social Watch
+version: 1.2.0
+author: zeelin(@yangyuwen-bri)
 license: MIT
 description: |
-  Use GSData open platform via local adapter script for account/content/rank/pubsent/nlp queries.
+  Zeelin Social Watch: monitor social media sentiment, trending events, platform rankings, and account data via GSData open platform.
   Use when user asks for 舆情检索、热点事件、平台榜单、账号数据、小红书/微博/抖音等数据查询。
-  Triggers: "gsdata", "清博", "舆情", "热点", "榜单", "关键词检索".
+  Triggers: "gsdata", "智灵", "舆情", "热点", "榜单", "关键词检索", "social watch".
 env:
   - GSDATA_APP_KEY
   - GSDATA_APP_SECRET
 ---
 
-# GSData Skill
+# Zeelin Social Watch
 
-This skill allows you to query the GSData open platform for public sentiment (舆情), rankings (榜单), and account data. 
+This skill allows you to monitor social media sentiment (舆情), trending events (热点), platform rankings (榜单), and account data across platforms like Weibo, Xiaohongshu, and Douyin — powered by the GSData open platform.
 
 **Prerequisites:**
 This skill requires the `requests` library. If a module cannot be found, you may need to run `pip install requests` once.
