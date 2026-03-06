@@ -19,7 +19,7 @@ clawhub install github:thu-nmrc/ZeeLin-OpenClaw-Skill/zeelin-social-watch
 This skill requires a gsdata (清博智能) App Key and App Secret. 
 
 **To get an API Key:**
-1. Register as a user on the [gsdata Open Platform](http://openapi.gsdata.cn/).
+1. Register as a user on the [gsdata Open Platform](http://databus.gsdata.cn/open/index).
 2. Create an Application in the user center.
 3. Obtain your `app_key` and `app_secret`.
 
