@@ -42,10 +42,24 @@ Field details: see [report-metadata.md](references/report-metadata.md).
 
 ## Workflow
 
-1. Confirm target repo path and that it contains `public/reports_config.json`.
-2. Run the publisher script (below).
-3. Verify build result.
-4. Confirm branch push and PR URL.
+1. On a new machine, run GitHub bootstrap first (section below).
+2. Confirm target repo path and that it contains `public/reports_config.json`.
+3. Run the publisher script (below).
+4. Verify build result.
+5. Confirm branch push and PR URL.
+
+## Bootstrap (New Machine)
+
+Run this once per user machine to set git identity, authenticate GitHub, upload SSH key, and validate repo push permission:
+
+```bash
+bash {baseDir}/scripts/bootstrap_github.sh \
+  --name "Your Name" \
+  --email "you@example.com" \
+  --repo "/absolute/path/to/THU-ZeeLin-Reports"
+```
+
+If your runner does not resolve `{baseDir}`, replace it with the absolute path of this skill folder.
 
 ## Script
 
@@ -88,4 +102,5 @@ When `abstract` is omitted, generate a concise, neutral summary by these rules:
 
 - Do not push directly to `main` as final delivery; use PR workflow.
 - If working tree is dirty, stop unless user explicitly allows mixed changes.
+- Validate git identity and origin push access before mutating files.
 - Keep existing entry format compatible with site fields: `id/title/version/date/category/abstract/coverUrl/pdfUrl`.

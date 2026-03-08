@@ -112,6 +112,49 @@ def ensure_clean_worktree(repo_dir: Path) -> None:
         )
 
 
+def ensure_git_identity(repo_dir: Path) -> None:
+    name = run_cmd(["git", "config", "--get", "user.name"], cwd=repo_dir, check=False).stdout.strip()
+    email = run_cmd(["git", "config", "--get", "user.email"], cwd=repo_dir, check=False).stdout.strip()
+    if not name or not email:
+        raise PublishError(
+            "Git identity is not configured (user.name/user.email). "
+            "Run scripts/bootstrap_github.sh first."
+        )
+    if "@" not in email:
+        raise PublishError(f"Git user.email looks invalid: {email}")
+
+
+def ensure_remote_access(repo_dir: Path, remote_name: str = "origin") -> str:
+    remote_url = run_cmd(
+        ["git", "config", "--get", f"remote.{remote_name}.url"], cwd=repo_dir, check=False
+    ).stdout.strip()
+    if not remote_url:
+        raise PublishError(f"Remote '{remote_name}' is not configured.")
+
+    readable = run_cmd(["git", "ls-remote", "--exit-code", remote_name, "HEAD"], cwd=repo_dir, check=False)
+    if readable.returncode != 0:
+        details = readable.stderr.strip() or readable.stdout.strip() or "cannot read remote"
+        raise PublishError(
+            f"Remote read check failed for '{remote_name}'. Verify authentication and URL.\n{details}"
+        )
+
+    head_sha = run_cmd(["git", "rev-parse", "HEAD"], cwd=repo_dir).stdout.strip()
+    probe_ref = f"refs/heads/codex/permission-check-{dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    writable = run_cmd(
+        ["git", "push", "--dry-run", remote_name, f"{head_sha}:{probe_ref}"],
+        cwd=repo_dir,
+        check=False,
+    )
+    if writable.returncode != 0:
+        details = writable.stderr.strip() or writable.stdout.strip() or "cannot push to remote"
+        raise PublishError(
+            f"Remote push permission check failed for '{remote_name}'. "
+            "Ask repo admin to grant write access.\n"
+            f"{details}"
+        )
+    return remote_url
+
+
 def load_reports_config(path: Path) -> list[dict[str, Any]]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -314,6 +357,8 @@ def main() -> int:
 
     if not args.allow_dirty and not args.dry_run:
         ensure_clean_worktree(repo_dir)
+        ensure_git_identity(repo_dir)
+        ensure_remote_access(repo_dir, "origin")
 
     records = load_reports_config(config_path)
     existing_ids = {str(item.get("id", "")).strip() for item in records if isinstance(item, dict)}
@@ -403,7 +448,7 @@ def main() -> int:
         f"### Report Publish Request\n\n"
         f"- Title: {args.title}\n"
         f"- Category: {args.category}\n"
-        f"- Date: {args.date}\n"
+        f"- Date: {resolved_date}\n"
         f"- Version: {args.version}\n"
         f"- Config path: `{rel_config}`\n"
         f"- Asset path: `{rel_target}`\n"

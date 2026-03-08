@@ -17,4 +17,6 @@ Validation rules:
 - New report entry is inserted at the top of `public/reports_config.json`.
 - Duplicate `pdfUrl` targets are rejected.
 - Script expects clean git working tree by default.
+- Script checks git identity (`user.name`, `user.email`) before publishing.
+- Script verifies `origin` remote read/push access before mutating files.
 - Script expects current branch to be `main` before it creates a feature branch.
