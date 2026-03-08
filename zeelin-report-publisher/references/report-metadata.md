@@ -18,5 +18,5 @@ Validation rules:
 - Duplicate `pdfUrl` targets are rejected.
 - Script expects clean git working tree by default.
 - Script checks git identity (`user.name`, `user.email`) before publishing.
-- Script verifies `origin` remote read/push access before mutating files.
+- Script verifies push remote read/push access and base remote read access before mutating files.
 - Script expects current branch to be `main` before it creates a feature branch.

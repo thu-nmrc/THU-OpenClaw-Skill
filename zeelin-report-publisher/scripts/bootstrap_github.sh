@@ -5,12 +5,14 @@ usage() {
   cat <<'EOF'
 Usage:
   bootstrap_github.sh [--name "Your Name"] [--email "you@example.com"] [--repo "/path/to/repo"] [--skip-gh-login] [--skip-ssh]
+  bootstrap_github.sh --clone-url "git@github.com:<you>/THU-ZeeLin-Reports.git" --clone-dir "/path/to/local/repo" [--upstream-url "git@github.com:thu-nmrc/THU-ZeeLin-Reports.git"]
 
 What it does:
   1) Configures git global identity (user.name, user.email)
   2) Logs in to GitHub CLI with SSH protocol (optional)
   3) Generates and uploads SSH key if needed (optional)
-  4) Verifies repo remote connectivity and push permission via dry-run (optional)
+  4) Optionally clones the report repo to local machine and sets upstream remote
+  5) Verifies remote connectivity and push permission via dry-run (optional)
 EOF
 }
 
@@ -37,6 +39,9 @@ die() {
 GIT_NAME="${GIT_NAME:-}"
 GIT_EMAIL="${GIT_EMAIL:-}"
 REPO_PATH="${REPO_PATH:-}"
+CLONE_URL="${CLONE_URL:-}"
+CLONE_DIR="${CLONE_DIR:-}"
+UPSTREAM_URL="${UPSTREAM_URL:-}"
 SKIP_GH_LOGIN=0
 SKIP_SSH=0
 
@@ -55,6 +60,21 @@ while [[ $# -gt 0 ]]; do
     --repo)
       [[ $# -ge 2 ]] || die "--repo requires a value"
       REPO_PATH="$2"
+      shift 2
+      ;;
+    --clone-url)
+      [[ $# -ge 2 ]] || die "--clone-url requires a value"
+      CLONE_URL="$2"
+      shift 2
+      ;;
+    --clone-dir)
+      [[ $# -ge 2 ]] || die "--clone-dir requires a value"
+      CLONE_DIR="$2"
+      shift 2
+      ;;
+    --upstream-url)
+      [[ $# -ge 2 ]] || die "--upstream-url requires a value"
+      UPSTREAM_URL="$2"
       shift 2
       ;;
     --skip-gh-login)
@@ -166,9 +186,35 @@ if [[ $SKIP_SSH -eq 0 ]]; then
   fi
 fi
 
+if [[ -n "$CLONE_URL" || -n "$CLONE_DIR" ]]; then
+  [[ -n "$CLONE_URL" && -n "$CLONE_DIR" ]] || die "--clone-url and --clone-dir must be provided together."
+  CLONE_DIR="${CLONE_DIR/#\~/$HOME}"
+  if [[ -d "$CLONE_DIR/.git" ]]; then
+    info "Clone target already exists: $CLONE_DIR"
+  else
+    if [[ -e "$CLONE_DIR" ]]; then
+      die "Clone target exists but is not a git repo: $CLONE_DIR"
+    fi
+    mkdir -p "$(dirname "$CLONE_DIR")"
+    info "Cloning repository: $CLONE_URL -> $CLONE_DIR"
+    git clone "$CLONE_URL" "$CLONE_DIR"
+  fi
+  REPO_PATH="$CLONE_DIR"
+fi
+
 if [[ -n "$REPO_PATH" ]]; then
   [[ -d "$REPO_PATH" ]] || die "Repo path not found: $REPO_PATH"
   [[ -d "$REPO_PATH/.git" ]] || die "Not a git repo: $REPO_PATH"
+
+  if [[ -n "$UPSTREAM_URL" ]]; then
+    if git -C "$REPO_PATH" remote get-url upstream >/dev/null 2>&1; then
+      git -C "$REPO_PATH" remote set-url upstream "$UPSTREAM_URL"
+      info "Updated upstream remote: $UPSTREAM_URL"
+    else
+      git -C "$REPO_PATH" remote add upstream "$UPSTREAM_URL"
+      info "Added upstream remote: $UPSTREAM_URL"
+    fi
+  fi
 
   REMOTE_URL="$(git -C "$REPO_PATH" config --get remote.origin.url || true)"
   [[ -n "$REMOTE_URL" ]] || die "Repo has no origin remote: $REPO_PATH"
@@ -186,6 +232,16 @@ if [[ -n "$REPO_PATH" ]]; then
     info "Remote push permission dry-run passed."
   else
     die "Remote push permission check failed. Ask admin to grant write access."
+  fi
+
+  if git -C "$REPO_PATH" remote get-url upstream >/dev/null 2>&1; then
+    UPSTREAM_REMOTE_URL="$(git -C "$REPO_PATH" config --get remote.upstream.url || true)"
+    info "upstream remote: $UPSTREAM_REMOTE_URL"
+    if git -C "$REPO_PATH" ls-remote --exit-code upstream HEAD >/dev/null 2>&1; then
+      info "Upstream read access check passed."
+    else
+      die "Upstream read access check failed. Verify upstream URL and permissions."
+    fi
   fi
 fi
 

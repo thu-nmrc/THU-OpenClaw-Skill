@@ -61,6 +61,17 @@ bash {baseDir}/scripts/bootstrap_github.sh \
 
 If your runner does not resolve `{baseDir}`, replace it with the absolute path of this skill folder.
 
+Fork workflow setup (recommended for team members without write access on main repo):
+
+```bash
+bash {baseDir}/scripts/bootstrap_github.sh \
+  --name "Your Name" \
+  --email "you@example.com" \
+  --clone-url "git@github.com:<your-user>/THU-ZeeLin-Reports.git" \
+  --clone-dir "/absolute/path/to/THU-ZeeLin-Reports" \
+  --upstream-url "git@github.com:thu-nmrc/THU-ZeeLin-Reports.git"
+```
+
 ## Script
 
 Primary command:
@@ -86,8 +97,14 @@ Default behavior:
 - Auto-generates `abstract` when omitted.
 - Runs `npm run build`.
 - Creates feature branch `codex/report-<id>`.
-- Commits and pushes to `origin`.
+- Commits and pushes to `origin` (fork).
+- Uses `upstream` as PR base remote when available (otherwise `origin`).
 - Creates PR with `gh` if available; otherwise prints manual compare URL.
+
+Remote options:
+
+- `--push-remote` controls where branches are pushed (default `origin`).
+- `--base-remote` controls PR base remote (default auto: `upstream` if exists, else `origin`).
 
 ## Abstract Generation Standard
 
@@ -102,5 +119,5 @@ When `abstract` is omitted, generate a concise, neutral summary by these rules:
 
 - Do not push directly to `main` as final delivery; use PR workflow.
 - If working tree is dirty, stop unless user explicitly allows mixed changes.
-- Validate git identity and origin push access before mutating files.
+- Validate git identity and push remote access before mutating files.
 - Keep existing entry format compatible with site fields: `id/title/version/date/category/abstract/coverUrl/pdfUrl`.

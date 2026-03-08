@@ -124,20 +124,31 @@ def ensure_git_identity(repo_dir: Path) -> None:
         raise PublishError(f"Git user.email looks invalid: {email}")
 
 
-def ensure_remote_access(repo_dir: Path, remote_name: str = "origin") -> str:
-    remote_url = run_cmd(
-        ["git", "config", "--get", f"remote.{remote_name}.url"], cwd=repo_dir, check=False
-    ).stdout.strip()
+def remote_exists(repo_dir: Path, remote_name: str) -> bool:
+    result = run_cmd(["git", "remote", "get-url", remote_name], cwd=repo_dir, check=False)
+    return result.returncode == 0
+
+
+def get_remote_url(repo_dir: Path, remote_name: str) -> str:
+    remote_url = run_cmd(["git", "remote", "get-url", remote_name], cwd=repo_dir, check=False).stdout.strip()
     if not remote_url:
         raise PublishError(f"Remote '{remote_name}' is not configured.")
+    return remote_url
 
+
+def ensure_remote_read_access(repo_dir: Path, remote_name: str) -> str:
+    remote_url = get_remote_url(repo_dir, remote_name)
     readable = run_cmd(["git", "ls-remote", "--exit-code", remote_name, "HEAD"], cwd=repo_dir, check=False)
     if readable.returncode != 0:
         details = readable.stderr.strip() or readable.stdout.strip() or "cannot read remote"
         raise PublishError(
             f"Remote read check failed for '{remote_name}'. Verify authentication and URL.\n{details}"
         )
+    return remote_url
 
+
+def ensure_remote_push_access(repo_dir: Path, remote_name: str) -> str:
+    remote_url = ensure_remote_read_access(repo_dir, remote_name)
     head_sha = run_cmd(["git", "rev-parse", "HEAD"], cwd=repo_dir).stdout.strip()
     probe_ref = f"refs/heads/codex/permission-check-{dt.datetime.now().strftime('%Y%m%d%H%M%S')}"
     writable = run_cmd(
@@ -153,6 +164,14 @@ def ensure_remote_access(repo_dir: Path, remote_name: str = "origin") -> str:
             f"{details}"
         )
     return remote_url
+
+
+def resolve_base_remote(repo_dir: Path, push_remote: str, base_remote: str | None) -> str:
+    if base_remote:
+        return base_remote
+    if push_remote == "origin" and remote_exists(repo_dir, "upstream"):
+        return "upstream"
+    return push_remote
 
 
 def load_reports_config(path: Path) -> list[dict[str, Any]]:
@@ -259,8 +278,9 @@ def ensure_branch_available(repo_dir: Path, branch_name: str) -> str:
 
 def maybe_open_pr_with_gh(
     repo_dir: Path,
+    base_repo: str,
     base_branch: str,
-    head_branch: str,
+    head_ref: str,
     title: str,
     body: str,
 ) -> str | None:
@@ -277,10 +297,12 @@ def maybe_open_pr_with_gh(
             "gh",
             "pr",
             "create",
+            "--repo",
+            base_repo,
             "--base",
             base_branch,
             "--head",
-            head_branch,
+            head_ref,
             "--title",
             title,
             "--body",
@@ -325,6 +347,16 @@ def main() -> int:
         default="public/reports_config.json",
         help="Path to reports config, relative to repo root.",
     )
+    parser.add_argument(
+        "--push-remote",
+        default="origin",
+        help="Git remote used for pushing the feature branch. Default: origin (fork).",
+    )
+    parser.add_argument(
+        "--base-remote",
+        default=None,
+        help="Git remote used as PR base. Default: auto (upstream when exists, else same as push-remote).",
+    )
     parser.add_argument("--base-branch", default="main", help="Base branch for PR.")
     parser.add_argument(
         "--branch-prefix",
@@ -355,10 +387,31 @@ def main() -> int:
     if not config_path.exists():
         raise PublishError(f"Config file not found: {config_path}")
 
+    push_remote = args.push_remote.strip()
+    if not push_remote:
+        raise PublishError("--push-remote cannot be empty.")
+    base_remote = resolve_base_remote(repo_dir, push_remote, (args.base_remote or "").strip() or None)
+
+    push_remote_url = ""
+    base_remote_url = ""
     if not args.allow_dirty and not args.dry_run:
         ensure_clean_worktree(repo_dir)
         ensure_git_identity(repo_dir)
-        ensure_remote_access(repo_dir, "origin")
+        push_remote_url = ensure_remote_push_access(repo_dir, push_remote)
+        base_remote_url = (
+            push_remote_url
+            if base_remote == push_remote
+            else ensure_remote_read_access(repo_dir, base_remote)
+        )
+    elif not args.dry_run:
+        # Even when allowing dirty state, keep identity/remote checks for deterministic failure.
+        ensure_git_identity(repo_dir)
+        push_remote_url = ensure_remote_push_access(repo_dir, push_remote)
+        base_remote_url = (
+            push_remote_url
+            if base_remote == push_remote
+            else ensure_remote_read_access(repo_dir, base_remote)
+        )
 
     records = load_reports_config(config_path)
     existing_ids = {str(item.get("id", "")).strip() for item in records if isinstance(item, dict)}
@@ -395,10 +448,18 @@ def main() -> int:
     }
 
     if args.dry_run:
+        if not push_remote_url:
+            push_remote_url = get_remote_url(repo_dir, push_remote)
+        if not base_remote_url:
+            base_remote_url = (
+                push_remote_url if base_remote == push_remote else get_remote_url(repo_dir, base_remote)
+            )
         if not args.date:
             print(f"[DRY RUN] Auto date: {resolved_date}")
         if not args.abstract:
             print(f"[DRY RUN] Auto abstract: {resolved_abstract}")
+        print(f"[DRY RUN] Push remote: {push_remote} ({push_remote_url})")
+        print(f"[DRY RUN] Base remote: {base_remote} ({base_remote_url})")
         print("[DRY RUN] Planned entry:")
         print(json.dumps(entry, ensure_ascii=False, indent=2))
         print(f"[DRY RUN] Copy: {source_file} -> {target_path}")
@@ -438,10 +499,18 @@ def main() -> int:
 
     commit_message = args.commit_message or f"feat(reports): publish {entry_id} ({args.category})"
     run_cmd(["git", "commit", "-m", commit_message], cwd=repo_dir)
-    run_cmd(["git", "push", "-u", "origin", branch_name], cwd=repo_dir)
+    run_cmd(["git", "push", "-u", push_remote, branch_name], cwd=repo_dir)
 
-    remote_url = run_cmd(["git", "config", "--get", "remote.origin.url"], cwd=repo_dir).stdout.strip()
-    owner, repo = parse_owner_repo_from_remote(remote_url)
+    if not push_remote_url:
+        push_remote_url = get_remote_url(repo_dir, push_remote)
+    if not base_remote_url:
+        base_remote_url = push_remote_url if base_remote == push_remote else get_remote_url(repo_dir, base_remote)
+
+    base_owner, base_repo = parse_owner_repo_from_remote(base_remote_url)
+    push_owner, push_repo = parse_owner_repo_from_remote(push_remote_url)
+    same_repo = (base_owner, base_repo) == (push_owner, push_repo)
+    head_ref = branch_name if same_repo else f"{push_owner}:{branch_name}"
+    base_repo_slug = f"{base_owner}/{base_repo}"
 
     pr_title = args.pr_title or f"Publish report: {args.title}"
     pr_body = (
@@ -450,23 +519,33 @@ def main() -> int:
         f"- Category: {args.category}\n"
         f"- Date: {resolved_date}\n"
         f"- Version: {args.version}\n"
+        f"- Push remote: `{push_remote}` ({push_owner}/{push_repo})\n"
+        f"- Base remote: `{base_remote}` ({base_owner}/{base_repo})\n"
         f"- Config path: `{rel_config}`\n"
         f"- Asset path: `{rel_target}`\n"
     )
 
-    pr_url = maybe_open_pr_with_gh(repo_dir, args.base_branch, branch_name, pr_title, pr_body)
+    pr_url = maybe_open_pr_with_gh(
+        repo_dir,
+        base_repo_slug,
+        args.base_branch,
+        head_ref,
+        pr_title,
+        pr_body,
+    )
     if pr_url:
         print(f"[OK] PR created: {pr_url}")
     else:
-        compare_url = (
-            f"https://github.com/{owner}/{repo}/compare/{args.base_branch}...{branch_name}?expand=1"
-        )
+        compare_head = branch_name if same_repo else f"{push_owner}:{branch_name}"
+        compare_url = f"https://github.com/{base_owner}/{base_repo}/compare/{args.base_branch}...{compare_head}?expand=1"
         print("[INFO] gh CLI unavailable or not authenticated; open PR manually:")
         print(compare_url)
 
     print("[OK] Report publishing branch is ready.")
     print(f"[INFO] Branch: {branch_name}")
     print(f"[INFO] Entry id: {entry_id}")
+    print(f"[INFO] Push remote: {push_remote}")
+    print(f"[INFO] Base remote: {base_remote}")
     return 0
 
 
