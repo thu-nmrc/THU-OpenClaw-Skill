@@ -5,13 +5,13 @@ usage() {
   cat <<'EOF'
 Usage:
   bootstrap_github.sh [--name "Your Name"] [--email "you@example.com"] [--repo "/path/to/repo"] [--skip-gh-login] [--skip-ssh]
-  bootstrap_github.sh --clone-url "git@github.com:<you>/THU-ZeeLin-Reports.git" --clone-dir "/path/to/local/repo" [--upstream-url "git@github.com:thu-nmrc/THU-ZeeLin-Reports.git"]
+  bootstrap_github.sh --clone-url "git@github.com:<you>/THU-ZeeLin-Reports.git" [--clone-dir "/path/to/local/repo"] [--upstream-url "git@github.com:thu-nmrc/THU-ZeeLin-Reports.git"]
 
 What it does:
   1) Configures git global identity (user.name, user.email)
   2) Logs in to GitHub CLI with SSH protocol (optional)
   3) Generates and uploads SSH key if needed (optional)
-  4) Optionally clones the report repo to local machine and sets upstream remote
+  4) Optionally clones the report repo to local workspace and sets upstream remote
   5) Verifies remote connectivity and push permission via dry-run (optional)
 EOF
 }
@@ -186,9 +186,21 @@ if [[ $SKIP_SSH -eq 0 ]]; then
   fi
 fi
 
-if [[ -n "$CLONE_URL" || -n "$CLONE_DIR" ]]; then
-  [[ -n "$CLONE_URL" && -n "$CLONE_DIR" ]] || die "--clone-url and --clone-dir must be provided together."
+if [[ -n "$CLONE_DIR" && -z "$CLONE_URL" ]]; then
+  die "--clone-dir requires --clone-url."
+fi
+
+if [[ -n "$CLONE_URL" ]]; then
+  if [[ -z "$CLONE_DIR" ]]; then
+    DEFAULT_REPO_NAME="$(basename "${CLONE_URL%.git}")"
+    [[ -n "$DEFAULT_REPO_NAME" ]] || DEFAULT_REPO_NAME="THU-ZeeLin-Reports"
+    CLONE_DIR="$PWD/$DEFAULT_REPO_NAME"
+    info "No --clone-dir provided. Using workspace default: $CLONE_DIR"
+  fi
   CLONE_DIR="${CLONE_DIR/#\~/$HOME}"
+  if [[ "$CLONE_DIR" != /* ]]; then
+    CLONE_DIR="$PWD/$CLONE_DIR"
+  fi
   if [[ -d "$CLONE_DIR/.git" ]]; then
     info "Clone target already exists: $CLONE_DIR"
   else

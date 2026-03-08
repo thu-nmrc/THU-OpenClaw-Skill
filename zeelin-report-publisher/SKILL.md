@@ -68,9 +68,10 @@ bash {baseDir}/scripts/bootstrap_github.sh \
   --name "Your Name" \
   --email "you@example.com" \
   --clone-url "git@github.com:<your-user>/THU-ZeeLin-Reports.git" \
-  --clone-dir "/absolute/path/to/THU-ZeeLin-Reports" \
   --upstream-url "git@github.com:thu-nmrc/THU-ZeeLin-Reports.git"
 ```
+
+`--clone-dir` is optional. If omitted, repo is cloned to current workspace as `<workspace>/THU-ZeeLin-Reports`.
 
 ## Script
 
