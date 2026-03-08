@@ -2,13 +2,15 @@
 name: zeelin-report-publisher
 description: Publish reports to the ZeeLin reports website ("智灵报告网站") by copying report assets, inserting a new top entry into public/reports_config.json for any category, running build checks, and preparing PR-ready branches.
 metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "🗂️",
-        "requires": { "bins": ["python3", "git", "npm"], "anyBins": ["gh"] },
-      },
-  }
+  openclaw:
+    emoji: "🗂️"
+    requires:
+      bins:
+        - python3
+        - git
+        - npm
+      anyBins:
+        - gh
 ---
 
 # ZeeLin Report Publisher
