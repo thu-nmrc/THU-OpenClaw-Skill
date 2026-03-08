@@ -53,18 +53,20 @@ Field details: see [report-metadata.md](references/report-metadata.md).
 Run this once per user machine to set git identity, authenticate GitHub, upload SSH key, and validate repo push permission:
 
 ```bash
-bash {baseDir}/scripts/bootstrap_github.sh \
+SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/zeelin-report-publisher"
+bash "$SKILL_DIR/scripts/bootstrap_github.sh" \
   --name "Your Name" \
   --email "you@example.com" \
-  --repo "/absolute/path/to/THU-ZeeLin-Reports"
+  --repo "<repo_root>"
 ```
 
-If your runner does not resolve `{baseDir}`, replace it with the absolute path of this skill folder.
+`<repo_root>` should point to your local report-site repository (for example `THU-ZeeLin-Reports`).
 
 Fork workflow setup (recommended for team members without write access on main repo):
 
 ```bash
-bash {baseDir}/scripts/bootstrap_github.sh \
+SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/zeelin-report-publisher"
+bash "$SKILL_DIR/scripts/bootstrap_github.sh" \
   --name "Your Name" \
   --email "you@example.com" \
   --clone-url "git@github.com:<your-user>/THU-ZeeLin-Reports.git" \
@@ -78,17 +80,16 @@ bash {baseDir}/scripts/bootstrap_github.sh \
 Primary command:
 
 ```bash
-python3 {baseDir}/scripts/publish_report.py \
-  --repo "/absolute/path/to/repo" \
-  --report-file "/absolute/path/to/report.pptx" \
+SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/zeelin-report-publisher"
+python3 "$SKILL_DIR/scripts/publish_report.py" \
+  --repo "<repo_root>" \
+  --report-file "<report_file>" \
   --title "Report Title" \
   --category "OpenClaw" \
   --date "2026" \
   --version "1.0" \
   --abstract "Short summary text."
 ```
-
-If your runner does not resolve `{baseDir}`, replace it with the absolute path of this skill folder.
 
 Default behavior:
 
