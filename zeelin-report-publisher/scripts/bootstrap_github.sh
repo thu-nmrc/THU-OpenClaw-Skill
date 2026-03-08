@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_NAME="$(basename "$0")"
-
 usage() {
   cat <<'EOF'
 Usage:
