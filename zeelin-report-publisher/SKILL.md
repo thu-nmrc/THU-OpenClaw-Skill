@@ -53,8 +53,7 @@ Field details: see [report-metadata.md](references/report-metadata.md).
 Run this once per user machine to set git identity, authenticate GitHub, upload SSH key, and validate repo push permission:
 
 ```bash
-SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/zeelin-report-publisher"
-bash "$SKILL_DIR/scripts/bootstrap_github.sh" \
+bash {baseDir}/scripts/bootstrap_github.sh \
   --name "Your Name" \
   --email "you@example.com" \
   --repo "<repo_root>"
@@ -65,8 +64,7 @@ bash "$SKILL_DIR/scripts/bootstrap_github.sh" \
 Fork workflow setup (recommended for team members without write access on main repo):
 
 ```bash
-SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/zeelin-report-publisher"
-bash "$SKILL_DIR/scripts/bootstrap_github.sh" \
+bash {baseDir}/scripts/bootstrap_github.sh \
   --name "Your Name" \
   --email "you@example.com" \
   --clone-url "git@github.com:<your-user>/THU-ZeeLin-Reports.git" \
@@ -80,8 +78,7 @@ bash "$SKILL_DIR/scripts/bootstrap_github.sh" \
 Primary command:
 
 ```bash
-SKILL_DIR="${CODEX_HOME:-$HOME/.codex}/skills/zeelin-report-publisher"
-python3 "$SKILL_DIR/scripts/publish_report.py" \
+python3 {baseDir}/scripts/publish_report.py \
   --repo "<repo_root>" \
   --report-file "<report_file>" \
   --title "Report Title" \
